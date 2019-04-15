@@ -138,6 +138,7 @@ for user in source_users:
 
 commit()
 
-urllib.request.urlopen(passwords.hc_ping)
+if  hasattr(passwords, 'hc_ping'):
+    urllib.request.urlopen(passwords.hc_ping)
 
 print('process completed in ' + str(time.clock() - starttime))
