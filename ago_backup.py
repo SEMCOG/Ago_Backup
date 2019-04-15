@@ -5,6 +5,23 @@ import passwords
 import subprocess
 import urllib.request
 import time
+import logging
+import sys
+
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger()
+logger.addHandler(logging.FileHandler(os.path.join('Content', 'last_run.log'), 'w'))
+logging.raiseExceptions = True
+print = logger.info
+
+
+def my_excepthook(excType, excValue, traceback, logger=logger):
+    logger.error("Logging an uncaught exception",
+                 exc_info=(excType, excValue, traceback))
+
+
+sys.excepthook = my_excepthook
 
 
 def commit():
