@@ -124,12 +124,17 @@ source_users = gis.users.search()
 for user in source_users:
     print("Collecting item ids for {}".format(user.username))
     user_content = {}
-    user_content["None"] = user.items()
 
-    for folder in user.folders:
-        user_content[folder['title']] = user.items(folder=folder['title'])
+    try:
+        user_content["None"] = user.items()
 
-    download_user(os.path.join("Content", "Users", user.username), user_content)
+        for folder in user.folders:
+            user_content[folder['title']] = user.items(folder=folder['title'])
+
+        download_user(os.path.join("Content", "Users", user.username), user_content)
+
+    except RuntimeError as e:
+        print(e)
 
 commit()
 
