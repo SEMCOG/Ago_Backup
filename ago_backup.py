@@ -9,7 +9,10 @@ import logging
 import sys
 
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger()
 logger.addHandler(logging.FileHandler(os.path.join('Content', 'last_run.log'), 'w'))
 logging.raiseExceptions = True
