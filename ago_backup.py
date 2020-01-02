@@ -9,14 +9,10 @@ import logging
 import sys
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger()
 logger.addHandler(logging.FileHandler(os.path.join('Content', 'last_run.log'), 'w'))
 logging.raiseExceptions = True
-print = logger.info
 
 
 def my_excepthook(excType, excValue, traceback, logger=logger):
@@ -39,6 +35,7 @@ def del_unused(location, new_names):
         return
     for name in (old_names - set(new_names)):
         print("deleting:", os.path.join(location, name))
+        logger.info('deleting: ' + os.path.join(location, name))
         shutil.rmtree(os.path.join(location, name))
 
 
@@ -47,6 +44,7 @@ def download_item(location, item):
         os.makedirs(location, exist_ok=True)
     except (FileNotFoundError, OSError):
         print(os.path.join(location, item.title))
+        logger.warning('Bad Path !!!!: ' + os.path.join(location, item.title))
         print("bad PATH !!!!!!!!!!!!!!!!!!!!!")
         return
     try:
@@ -65,9 +63,11 @@ def download_item(location, item):
 
     if old_timestamp != item_modified:
         print(os.path.join(location, item.title))
+        logger.info('This item changed: ' + os.path.join(location, item.title))
         try:
             if item.type == 'Feature Service':
                 print("exporting:" + item.title)
+                logger.info("exporting:" + item.title)
                 try:
                     export_type = 'File Geodatabase'
                     if len(item.layers) == 0:
@@ -78,9 +78,11 @@ def download_item(location, item):
                         export.download(location)
                         export.delete()
                     else:
+                        logger.info(item.title + " - Cannot be exported")
                         print(item.title + " - Cannot be exported")
                 except (KeyError) as e:
                     print(item.title + " - Cannot be exported")
+                    logger.warning(item.title + " - Cannot be exported")
                     print(e)
 
             item.download(location)
@@ -89,6 +91,7 @@ def download_item(location, item):
                 timestamp.write(item_modified)
         except (FileNotFoundError, OSError, Exception) as e:
             print("bad PATH !!!!!!!!!!!!!!!!!!!!!")
+            logger.warning('Bad Path!!!!')
             print(e)
 
 
@@ -126,6 +129,7 @@ source_users = gis.users.search()
 
 for user in source_users:
     print("Collecting item ids for {}".format(user.username))
+    logger.info("Collecting item ids for {}".format(user.username))
     user_content = {}
 
     try:
@@ -144,4 +148,5 @@ commit()
 if  hasattr(passwords, 'hc_ping'):
     urllib.request.urlopen(passwords.hc_ping)
 
+logger.info('process completed in ' + str(time.clock() - starttime))
 print('process completed in ' + str(time.clock() - starttime))
