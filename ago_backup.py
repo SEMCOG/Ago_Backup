@@ -72,8 +72,7 @@ def download_item(location, item):
                     export_type = 'File Geodatabase'
                     if len(item.layers) == 0:
                         export_type = 'CSV'
-
-                    if 'ago_view' not in item.tags:
+                    if ("Don't back up" not in {i.title for i in item.shared_with['groups']}) and (not item.layers[0].properties.isView):
                         export = item.export(item.title + suffix_of_backup_content, export_type)
                         export.download(location)
                         export.delete()
