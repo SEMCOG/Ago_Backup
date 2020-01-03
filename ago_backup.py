@@ -21,9 +21,10 @@ def my_excepthook(excType, excValue, traceback, logger=logger):
     logger.error("Logging an uncaught exception",
                  exc_info=(excType, excValue, traceback))
 
-
 sys.excepthook = my_excepthook
 
+def clean_location(location):
+    return location.replace('/','-').replace('$','-').replace(':','-').strip()
 
 def commit():
     subprocess.call(['git', 'add', '.'], cwd="Content")
@@ -35,7 +36,7 @@ def del_unused(location, new_names):
         old_names = set(os.listdir(location))
     except (FileNotFoundError, OSError):
         return
-    for name in (old_names - set(new_names)):
+    for name in (old_names - {clean_location(name) for name in new_names}):
         print("deleting:", os.path.join(location, name))
         logger.info('deleting: ' + os.path.join(location, name))
         shutil.rmtree(os.path.join(location, name))
@@ -46,7 +47,7 @@ def download_item(location, item):
     try:
         os.makedirs(location, exist_ok=True)
     except (FileNotFoundError, OSError):
-        logger.warning('Bad Path !!!!: ' + os.path.join(location, item.title))
+        logger.warning('Bad Path !!!!: ' + location)
         item.share(['Failed to back up'])
         return
     try:
@@ -64,7 +65,7 @@ def download_item(location, item):
                         item_modified += "," + str(layer.properties.editingInfo.lastEditDate)
 
     if old_timestamp != item_modified:
-        logger.info('This item changed: ' + os.path.join(location, item.title))
+        logger.info('This item changed: ' + os.path.join(location, clean_location(item.title)))
 
         try:
             skip_if_failed = (datetime.datetime.today().weekday() < 5) #weekday
@@ -109,7 +110,7 @@ def download_item(location, item):
 def download_items(location, items):
     del_unused(location, {item.title for item in items})
     for item in items:
-        download_item(os.path.join(location, item.title), item)
+        download_item(os.path.join(location, clean_location(item.title)), item)
 
 
 def download_type(location, types):
@@ -125,7 +126,7 @@ def download_user(location, user_content):
         types = {}
         for item in content:
             types.setdefault(item.type, []).append(item)
-        download_type(os.path.join(location, folder), types)
+        download_type(os.path.join(location, clean_location(folder)), types)
 
 starttime = time.clock()
 
@@ -148,7 +149,7 @@ for user in source_users:
         for folder in user.folders:
             user_content[folder['title']] = user.items(folder=folder['title'])
 
-        download_user(os.path.join("Content", "Users", user.username), user_content)
+        download_user(os.path.join("Content", "Users", clean_location(user.username)), user_content)
 
     except RuntimeError as e:
         print(e)
