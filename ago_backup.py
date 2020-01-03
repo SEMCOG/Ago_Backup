@@ -48,7 +48,7 @@ def download_item(location, item):
         os.makedirs(location, exist_ok=True)
     except (FileNotFoundError, OSError):
         logger.warning('Bad Path !!!!: ' + location)
-        item.share(['Failed to back up'])
+        item.share(groups=gis.groups.search('"Failed to back up"'))
         return
     try:
         with open(os.path.join(location, "timestamp.txt"), "r+") as timestamp:
@@ -94,7 +94,7 @@ def download_item(location, item):
                     if fail_count >= 10:
                         quit()
                     logger.warning(item.title + " - Cannot be exported, failed backup")
-                    item.share(['Failed to back up'])
+                    item.share(groups=gis.groups.search('"Failed to back up"'))
                     print(e)
 
             item.download(location)
@@ -103,7 +103,7 @@ def download_item(location, item):
                 timestamp.write(item_modified)
         except (FileNotFoundError, OSError, Exception) as e:
             logger.warning('Bad Path!!!!')
-            item.share(['Failed to back up'])
+            item.share(groups=gis.groups.search('"Failed to back up"'))
             print(e)
 
 
