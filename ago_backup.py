@@ -46,9 +46,8 @@ def download_item(location, item):
     try:
         os.makedirs(location, exist_ok=True)
     except (FileNotFoundError, OSError):
-        print(os.path.join(location, item.title))
         logger.warning('Bad Path !!!!: ' + os.path.join(location, item.title))
-        print("bad PATH !!!!!!!!!!!!!!!!!!!!!")
+        item.share(['Failed to back up'])
         return
     try:
         with open(os.path.join(location, "timestamp.txt"), "r+") as timestamp:
@@ -65,33 +64,34 @@ def download_item(location, item):
                         item_modified += "," + str(layer.properties.editingInfo.lastEditDate)
 
     if old_timestamp != item_modified:
-        print(os.path.join(location, item.title))
         logger.info('This item changed: ' + os.path.join(location, item.title))
+
         try:
+            skip_if_failed = (datetime.datetime.today().weekday() < 5) #weekday
+            failed_backup = skip_if_failed and "Failed to back up" in {i.title for i in item.shared_with['groups']}
+            if failed_backup:
+                logger.info(item.title + " - Skipped export")
+                raise Exception("Failed to back up")
             if item.type == 'Feature Service':
-                print("exporting:" + item.title)
                 logger.info("exporting:" + item.title)
                 try:
                     export_type = 'File Geodatabase'
                     if len(item.layers) == 0:
                         export_type = 'CSV'
+                    is_view = len(item.layers) >= 1 and hasattr(item.layers[0].properties, 'isView') and item.layers[0].properties.isView
                     dont_backup = "Don't back up" in {i.title for i in item.shared_with['groups']}
-                    skip_if_failed = (datetime.datetime.today().weekday() < 5) #weekday
-                    failed_backup = skip_if_failed and "Failed to back up" in {i.title for i in item.shared_with['groups']}
 
-                    if (not dont_backup) and (not failed_backup) and (not item.layers[0].properties.isView):
+                    if (not dont_backup) and (not is_view):
                         export = item.export(item.title + suffix_of_backup_content, export_type)
                         export.download(location)
                         export.delete()
                         item.unshare(['Failed to back up'])
                     else:
                         logger.info(item.title + " - Skipped export")
-                        print(item.title + " - Skipped export")
                 except (KeyError) as e:
                     fail_count += 1
                     if fail_count >= 10:
                         quit()
-                    print(item.title + " - Cannot be exported, failed backup")
                     logger.warning(item.title + " - Cannot be exported, failed backup")
                     item.share(['Failed to back up'])
                     print(e)
@@ -101,8 +101,8 @@ def download_item(location, item):
             with open(os.path.join(location, "timestamp.txt"), "w") as timestamp:
                 timestamp.write(item_modified)
         except (FileNotFoundError, OSError, Exception) as e:
-            print("bad PATH !!!!!!!!!!!!!!!!!!!!!")
             logger.warning('Bad Path!!!!')
+            item.share(['Failed to back up'])
             print(e)
 
 
@@ -139,7 +139,6 @@ for item in gis.users.get(passwords.user_name).items():
 source_users = gis.users.search()
 
 for user in source_users:
-    print("Collecting item ids for {}".format(user.username))
     logger.info("Collecting item ids for {}".format(user.username))
     user_content = {}
 
@@ -160,4 +159,3 @@ if  hasattr(passwords, 'hc_ping'):
     urllib.request.urlopen(passwords.hc_ping)
 
 logger.info('process completed in ' + str(time.clock() - starttime))
-print('process completed in ' + str(time.clock() - starttime))
