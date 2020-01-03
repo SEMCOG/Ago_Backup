@@ -1,6 +1,7 @@
 from arcgis.gis import GIS
 import os
 import shutil
+import datetime
 import passwords
 import subprocess
 import urllib.request
@@ -14,6 +15,7 @@ logger = logging.getLogger()
 logger.addHandler(logging.FileHandler(os.path.join('Content', 'last_run.log'), 'w'))
 logging.raiseExceptions = True
 
+fail_count = 0
 
 def my_excepthook(excType, excValue, traceback, logger=logger):
     logger.error("Logging an uncaught exception",
@@ -40,6 +42,7 @@ def del_unused(location, new_names):
 
 
 def download_item(location, item):
+    global fail_count
     try:
         os.makedirs(location, exist_ok=True)
     except (FileNotFoundError, OSError):
@@ -72,16 +75,25 @@ def download_item(location, item):
                     export_type = 'File Geodatabase'
                     if len(item.layers) == 0:
                         export_type = 'CSV'
-                    if ("Don't back up" not in {i.title for i in item.shared_with['groups']}) and (not item.layers[0].properties.isView):
+                    dont_backup = "Don't back up" in {i.title for i in item.shared_with['groups']}
+                    skip_if_failed = (datetime.datetime.today().weekday() < 5) #weekday
+                    failed_backup = skip_if_failed and "Failed to back up" in {i.title for i in item.shared_with['groups']}
+
+                    if (not dont_backup) and (not failed_backup) and (not item.layers[0].properties.isView):
                         export = item.export(item.title + suffix_of_backup_content, export_type)
                         export.download(location)
                         export.delete()
+                        item.unshare(['Failed to back up'])
                     else:
-                        logger.info(item.title + " - Cannot be exported")
-                        print(item.title + " - Cannot be exported")
+                        logger.info(item.title + " - Skipped export")
+                        print(item.title + " - Skipped export")
                 except (KeyError) as e:
-                    print(item.title + " - Cannot be exported")
-                    logger.warning(item.title + " - Cannot be exported")
+                    fail_count += 1
+                    if fail_count >= 10:
+                        quit()
+                    print(item.title + " - Cannot be exported, failed backup")
+                    logger.warning(item.title + " - Cannot be exported, failed backup")
+                    item.share(['Failed to back up'])
                     print(e)
 
             item.download(location)
