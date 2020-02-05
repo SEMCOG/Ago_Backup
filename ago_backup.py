@@ -24,6 +24,8 @@ def my_excepthook(excType, excValue, traceback, logger=logger):
 sys.excepthook = my_excepthook
 
 def clean_location(location):
+    if (not location):
+        return 'Missing'
     return location.replace('/','-').replace('$','-').replace(':','-').strip()
 
 def commit():
